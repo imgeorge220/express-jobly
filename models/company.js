@@ -1,91 +1,83 @@
 const db = require('../db');
 const sqlForPartialUpdate = require('../helpers/partialUpdate');
 const ExpressError = require('../helpers/expressError');
+const express = require("express");
+const buildFilter = require("../helpers/buildFilterQuery")
+
 
 class Company {
-  constructor({ handle, name, description, numEmployees, logoUrl }) {
+  constructor({ handle, name, description, num_employees, logo_url }) {
     this.handle = handle;
     this.name = name;
     this.description = description;
-    this.numEmployees = numEmployees;
-    this.logoUrl = logoUrl;
+    this.numEmployees = num_employees;
+    this.logoUrl = logo_url;
   }
 
   static async all() {
     const results = await db.query(
-      `SELECT 
-        handle, 
-        name, 
-        description, 
-        num_employees AS numEmployees, 
-        logo_url AS logoUrl
+      `SELECT
+        handle,
+        name
       FROM companies
       ORDER BY name`
     );
-    return results.rows.map(c => new Company(c));
+
+    let companies = results.rows.map(c => new Company(c))
+    return { companies };
   }
 
   static async getByHandle(handle) {
-    try {
-      const results = await db.query(
-        `SELECT 
-          handle, 
-          name, 
-          description, 
-          num_employees AS numEmployees, 
-          logo_url AS logoUrl
+    const results = await db.query(
+      `SELECT
+          handle,
+          name,
+          description,
+          num_employees,
+          logo_url
         FROM companies
         WHERE handle = $1`,
-        [handle]
-      );
+      [handle]
+    );
 
-      const company = results.rows[0];
+    const company = results.rows[0];
 
-      if (!company) {
-        throw new ExpressError('Company not found!', 404);
-      }
-
-      return new Company(company);
-    } catch (err) {
-      return next(err);
+    if (!company) {
+      throw new ExpressError('Company not found!', 404);
     }
+
+    return {company: new Company(company)};
   }
 
   static async filterByQueries(queries) {
-    try {
-      if (queries.minEmployees > queries.maxEmployees) {
-        throw new ExpressError("Max value cannot be lower than min value", 400);
-      }
-      let filterParams = buildFilter(queries);
-
-      const results = await db.query(
-        `SELECT 
-          handle, 
-          name
-        FROM companies
-        WHERE ${filterParams.sqlQuery}`,
-        [filterParams.values]
+    if (queries.minEmployees > queries.maxEmployees) {
+      throw new ExpressError("Max value cannot be lower than min value", 400);
+    }
+    let filterParams = buildFilter(queries);
+    const results = await db.query(
+      `SELECT
+      handle,
+      name
+      FROM companies
+      WHERE ${filterParams.sqlQuery}`,
+      filterParams.values
       );
 
-      if (results.rows.length === 0) {
-        throw new ExpressError('No companies exist with those parameters', 400);
-      }
-
-      let companies = results.rows.map(c => new Company(c));
-
-      return { companies };
-    } catch (err) {
-      return next(err);
+    if (results.rows.length === 0) {
+      throw new ExpressError('No companies exist with those parameters', 400);
     }
+
+    let companies = results.rows.map(c => new Company(c));
+
+    return { companies };
   }
 
   static async update(handle, items) {
-    try {
-      let queryParams = sqlForPartialUpdate("companies", items, "handle", handle);
+    let queryParams = sqlForPartialUpdate("companies", items, "handle", handle);
 
-      const update = await db.query(
-        queryParams.query,
-        [queryParams.values]
+    const update = await db.query(
+      queryParams.query,
+      queryParams.values
       );
 
       if (update.rows.length === 0) {
@@ -94,59 +86,50 @@ class Company {
 
       let company = new Company(update.rows[0]);
 
-      return { company };
-    } catch (err) {
-      return next(err);
-    }
+    return { company };
   }
 
   async addToDb() {
-    try {
-      const company = await db.query(
-        `INSERT INTO companies
+    const company = (await db.query(
+      `INSERT INTO companies
           (handle,
           name,
           description,
-          num_employees AS numEmployees,
-          logo_url AS logoUrl)
+          num_employees,
+          logo_url)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING
           handle,
           name,
           description,
-          num_employees AS numEmployees,
-          logo_url AS logoUrl`,
-        [this.handle,
-        this.name,
-        this.description,
-        this.numEmployees,
-        this.logoUrl]
-      );
+          num_employees AS "numEmployees",
+          logo_url AS "logoUrl"`,
+      [this.handle,
+      this.name,
+      this.description,
+      this.numEmployees,
+      this.logoUrl]
+    )).rows[0];
 
-      return { company };
-    } catch (err) {
-      return next(err);
-    }
+    return { company };
+
   }
 
 
-  static async delete(handle) {
-    try {
-      const deleted = await db.query(
-        `DELETE FROM companies
+  static async deleteFromDb(handle) {
+    const deleted = await db.query(
+      `DELETE FROM companies
         WHERE handle = $1`,
-        [handle]
-      );
+      [handle]
+    );
 
-      console.log(deleted);
-      if (deleted.rows.length === 0) {
-        throw new ExpressError('Company does not exist', 404);
-      }
-
-      return { message: "Company successfully deleted"};
-    } catch (err) {
-      return next(err);
+    if (deleted.rowCount === 0) {
+      throw new ExpressError('Company does not exist', 404);
     }
+
+    return { message: "Company successfully deleted" };
   }
 
 }
+
+module.exports = Company;
