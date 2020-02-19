@@ -1,10 +1,13 @@
 const express = require("express");
-const db = require('../db');
+const jsonschema = require("jsonschema");
+
 const router = new express.Router();
+
 const ExpressError = require("../helpers/expressError");
+const Company = require("../models/company");
 
-
-const Company = require("../models/company")
+const postSchema = require("../schemas/companyPostSchema.json");
+const patchSchema = require("../schemas/companyPatchSchema.json");
 
 router.get("/", async (req, res, next) => {
   try {
@@ -33,7 +36,12 @@ router.get("/:handle", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
-    //JSON SCHEMA HERE FOR SURESIES
+    const validData = jsonschema.validate(req.body, postSchema);
+    if (!validData.valid) {
+      let listOfErrors = validData.errors.map(error => error.stack);
+      throw new ExpressError(listOfErrors, 400)
+    }
+
     let company = new Company(req.body);
     let newComp = await company.addToDb();
 
@@ -46,6 +54,11 @@ router.post("/", async (req, res, next) => {
 
 router.patch("/:handle", async (req, res, next) => {
   try {
+    const validData = jsonschema.validate(req.body, patchSchema);
+    if (!validData.valid) {
+      let listOfErrors = validData.errors.map(error => error.stack);
+      throw new ExpressError(listOfErrors, 400)
+    }
     let result = await Company.update(req.params.handle, req.body);
     return res.json(result);
   }
