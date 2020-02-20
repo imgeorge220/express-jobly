@@ -4,25 +4,25 @@ const jsonschema = require("jsonschema");
 const router = new express.Router();
 
 const ExpressError = require("../helpers/expressError");
-const Company = require("../models/company");
+const Job = require("../models/job");
 
-const postSchema = require("../schemas/companyPostSchema.json");
-const patchSchema = require("../schemas/companyPatchSchema.json");
+const postSchema = require("../schemas/jobPostSchema.json");
+const patchSchema = require("../schemas/jobPatchSchema.json");
 
 router.get("/", async (req, res, next) => {
   try {
-      let result = await Company.allByQueries(req.query);
-      return res.json(result);
+    let result = await Job.allByQueries(req.query);
+    return res.json(result);
   }
   catch (err) {
     return next(err);
   }
 });
 
-router.get("/:handle", async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    let company = await Company.getByHandle(req.params.handle);
-    return res.json(company);
+    let job = await Job.getByID(req.params.id);
+    return res.json(job);
   }
   catch (err) {
     return next(err);
@@ -35,27 +35,28 @@ router.post("/", async (req, res, next) => {
 
     if (!validData.valid) {
       let listOfErrors = validData.errors.map(error => error.stack);
-      throw new ExpressError(listOfErrors, 400)
+      throw new ExpressError(listOfErrors, 400);
     }
 
-    let company = new Company(req.body);
-    let newComp = await company.addToDb();
+    let job = new Job(req.body);
+    await job.addToDb();
 
-    return res.status(201).json(newComp);
+    return res.status(201).json({ job });
   }
   catch (err) {
     return next(err);
   }
 });
 
-router.patch("/:handle", async (req, res, next) => {
+router.patch("/:id", async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, patchSchema);
+
     if (!validData.valid) {
       let listOfErrors = validData.errors.map(error => error.stack);
       throw new ExpressError(listOfErrors, 400)
     }
-    let result = await Company.update(req.params.handle, req.body);
+    let result = await Job.update(req.params.id, req.body);
     return res.json(result);
   }
   catch (err) {
@@ -63,9 +64,9 @@ router.patch("/:handle", async (req, res, next) => {
   }
 });
 
-router.delete("/:handle", async (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   try {
-    let result = await Company.deleteFromDb(req.params.handle);
+    let result = await Job.deleteFromDb(req.params.id);
     return res.json(result);
   }
   catch (err) {

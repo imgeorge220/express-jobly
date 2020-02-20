@@ -5,33 +5,32 @@ const app = require("../../app")
 const db = require('../../db');
 const Company = require('../../models/company');
 
-describe("Company Routes Tests", () => {
+let c1, c2;
 
-  let c1, c2;
+beforeEach(async function () {
+  db.query('DELETE FROM companies')
 
-  beforeEach(async function () {
-    db.query('DELETE FROM companies')
-
-    c1 = new Company({
-      handle: "test1",
-      name: "Test1",
-      description: "is a test",
-      num_employees: 5,
-      logo_url: "www.test.gov"
-    });
-
-    c2 = new Company({
-      handle: "test2",
-      name: "Test2",
-      description: "is a test2",
-      num_employees: 60,
-      logo_url: "www.test2.gov"
-    });
-
-    c1.addToDb();
-    c2.addToDb();
+  c1 = new Company({
+    handle: "test1",
+    name: "Test1",
+    description: "is a test",
+    num_employees: 5,
+    logo_url: "www.test.gov"
   });
 
+  c2 = new Company({
+    handle: "test2",
+    name: "Test2",
+    description: "is a test2",
+    num_employees: 60,
+    logo_url: "www.test2.gov"
+  });
+
+  await c1.addToDb();
+  await c2.addToDb();
+});
+
+describe("GET /companies tests", () => {
   test("Get all- no filter",
     async function () {
       const resp = await request(app).get(`/companies`);
@@ -61,8 +60,8 @@ describe("Company Routes Tests", () => {
     async function () {
       const resp = await request(app).get(`/companies?search=test3`);
 
-      expect(resp.statusCode).toEqual(400);
-      expect(resp.body.message).toEqual('No companies exist with those parameters');
+      expect(resp.statusCode).toEqual(404);
+      expect(resp.body.message).toEqual('No companies found');
     }
   );
 
@@ -81,8 +80,8 @@ describe("Company Routes Tests", () => {
     async function () {
       const resp = await request(app).get(`/companies?maxEmployees=4`);
 
-      expect(resp.statusCode).toEqual(400);
-      expect(resp.body.message).toEqual('No companies exist with those parameters');
+      expect(resp.statusCode).toEqual(404);
+      expect(resp.body.message).toEqual('No companies found');
     }
   );
 
@@ -101,8 +100,8 @@ describe("Company Routes Tests", () => {
     async function () {
       const resp = await request(app).get(`/companies?minEmployees=100`);
 
-      expect(resp.statusCode).toEqual(400);
-      expect(resp.body.message).toEqual('No companies exist with those parameters');
+      expect(resp.statusCode).toEqual(404);
+      expect(resp.body.message).toEqual('No companies found');
     }
   );
 
@@ -129,7 +128,9 @@ describe("Company Routes Tests", () => {
       });
     }
   );
+});
 
+describe("GET /companies/:handle tests", () => {
   test("Get one company",
     async function () {
       const resp = await request(app)
@@ -149,7 +150,9 @@ describe("Company Routes Tests", () => {
       expect(resp.body.message).toEqual('Company not found!');
     }
   );
+});
 
+describe("POST /companies tests", () => {
   test("Post - creates new company",
     async function () {
       const resp = await request(app)
@@ -216,6 +219,32 @@ describe("Company Routes Tests", () => {
     }
   );
 
+  test("Post - fails with extraneous inputs",
+    async function () {
+      const resp = await request(app)
+        .post(`/companies`)
+        .send({
+          handle: "test3",
+          name: "Test3",
+          description: "test",
+          num_employees: 20,
+          logo_url: "test",
+          extraKey: "This post should fail."
+        });
+
+      expect(resp.statusCode).toEqual(400);
+      expect(resp.body.message).toEqual(expect.any(Array));
+      expect(resp.body.message.length).toEqual(1);
+
+      const respGet = await request(app)
+        .get(`/companies`);
+
+      expect(respGet.body.companies.length).toEqual(2);
+    }
+  );
+});
+
+describe("PATCH /companies/:handle tests", () => {
   test("Patch - updates existing company",
     async function () {
       const resp = await request(app)
@@ -253,7 +282,26 @@ describe("Company Routes Tests", () => {
       expect(respGet.body.companies.length).toEqual(2);
     }
   );
+  test("Post - fails with extraneous inputs",
+  async function () {
+    const resp = await request(app)
+      .patch(`/companies/test1`)
+      .send({
+        num_employees: 20,
+        logo_url: "test",
+        extraKey: "This patch should fail."
+      });
 
+    expect(resp.statusCode).toEqual(400);
+    expect(resp.body.message).toEqual(expect.any(Array));
+    expect(resp.body.message.length).toEqual(1);
+
+    const respGet = await request(app)
+      .get(`/companies`);
+
+    expect(respGet.body.companies.length).toEqual(2);
+  }
+);
   test("Patch - fails company handle doesn't exist",
     async function () {
       const resp = await request(app)
@@ -273,7 +321,9 @@ describe("Company Routes Tests", () => {
       expect(respGet.body.companies.length).toEqual(2);
     }
   );
+});
 
+describe("DELETE /companies/:handle tests", () => {
   test("Delete - removes company",
     async function () {
       const resp = await request(app)

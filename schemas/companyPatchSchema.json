@@ -4,6 +4,7 @@
   "$id": "http://example.com/root.json",
   "type": "object",
   "title": "The Root Schema",
+  "additionalProperties": false,
   "properties": {
     "handle": {
       "$id": "#/properties/handle",

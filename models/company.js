@@ -1,7 +1,7 @@
 const db = require('../db');
 const sqlForPartialUpdate = require('../helpers/partialUpdate');
 const ExpressError = require('../helpers/expressError');
-const buildFilter = require("../helpers/buildFilterQuery")
+const { buildCompanyFilter } = require("../helpers/buildFilterQuery")
 
 
 class Company {
@@ -13,16 +13,23 @@ class Company {
     this.logoUrl = logo_url;
   }
 
-  static async all() {
+  static async allByQueries(queries) {
+    if (queries.minEmployees > queries.maxEmployees) {
+      throw new ExpressError("Max value cannot be lower than min value", 400);
+    }
+    let filterParams = buildCompanyFilter(queries);
+
     const results = await db.query(
-      `SELECT
-        handle,
-        name
-      FROM companies
-      ORDER BY name`
+      filterParams.sqlQueryString,
+      filterParams.values
     );
 
+    if (results.rows.length === 0) {
+      throw new ExpressError('No companies found', 404);
+    }
+
     let companies = results.rows;
+
     return { companies };
   }
 
@@ -33,43 +40,44 @@ class Company {
           name,
           description,
           num_employees,
-          logo_url
+          logo_url,
+          j.id,
+          j.title,
+          j.salary,
+          j.equity,
+          j.date_posted
         FROM companies
+        LEFT JOIN jobs j
+        ON handle = j.company_handle
         WHERE handle = $1`,
       [handle]
     );
 
     const company = results.rows[0];
+    const jobs = results.rows;
 
     if (!company) {
       throw new ExpressError('Company not found!', 404);
     }
 
-    return {company: new Company(company)};
+    return {
+      company: {
+        handle: company.handle,
+        name: company.name,
+        description: company.description,
+        num_employees: company.num_employees,
+        logo_url: company.logo_url,
+        jobs: jobs.map(r => ({
+          id: r.id,
+          title: r.title,
+          salary: r.salary,
+          equity: r.equity,
+          date_posted: r.date_posted
+        }))
+      }
+    };
   }
 
-  static async filterByQueries(queries) {
-    if (queries.minEmployees > queries.maxEmployees) {
-      throw new ExpressError("Max value cannot be lower than min value", 400);
-    }
-    let filterParams = buildFilter(queries);
-    const results = await db.query(
-      `SELECT
-      handle,
-      name
-      FROM companies
-      ${filterParams.sqlQuery}`,
-      filterParams.values
-      );
-
-    if (results.rows.length === 0) {
-      throw new ExpressError('No companies exist with those parameters', 400);
-    }
-
-    let companies = results.rows;
-
-    return { companies };
-  }
 
   static async update(handle, items) {
     let queryParams = sqlForPartialUpdate("companies", items, "handle", handle);
@@ -77,13 +85,13 @@ class Company {
     const update = await db.query(
       queryParams.query,
       queryParams.values
-      );
+    );
 
-      if (update.rows.length === 0) {
-        throw new ExpressError('Company does not exist', 404);
-      }
+    if (update.rows.length === 0) {
+      throw new ExpressError('Company does not exist', 404);
+    }
 
-      let company = update.rows[0];
+    let company = update.rows[0];
 
     return { company };
   }
