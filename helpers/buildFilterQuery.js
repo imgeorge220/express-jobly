@@ -1,4 +1,3 @@
-
 /**
  * Expects an object of query parameters with possible keys of 
  * 'search', 'minEmployees', 'maxEmployees'.
@@ -7,6 +6,7 @@
  *  -query: SQL query string of filters
  *  -value: array of sanitized values for query
  */
+
 function buildFilter(queries) {
   let queryArr = [];
   let values = [];
@@ -41,6 +41,10 @@ function buildFilter(queries) {
   }
 
   let sqlQuery = queryArr.join(' AND ');
+
+  if (sqlQuery.length !== 0){
+    sqlQuery = `WHERE ${sqlQuery}`
+  }
 
   return { sqlQuery, values };
 }

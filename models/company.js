@@ -22,7 +22,7 @@ class Company {
       ORDER BY name`
     );
 
-    let companies = results.rows.map(c => new Company(c))
+    let companies = results.rows;
     return { companies };
   }
 
@@ -58,7 +58,7 @@ class Company {
       handle,
       name
       FROM companies
-      WHERE ${filterParams.sqlQuery}`,
+      ${filterParams.sqlQuery}`,
       filterParams.values
       );
 
@@ -66,7 +66,7 @@ class Company {
       throw new ExpressError('No companies exist with those parameters', 400);
     }
 
-    let companies = results.rows.map(c => new Company(c));
+    let companies = results.rows;
 
     return { companies };
   }
@@ -83,7 +83,7 @@ class Company {
         throw new ExpressError('Company does not exist', 404);
       }
 
-      let company = new Company(update.rows[0]);
+      let company = update.rows[0];
 
     return { company };
   }

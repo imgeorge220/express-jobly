@@ -172,7 +172,7 @@ describe("Company Routes Tests", () => {
     }
   );
 
-  test("Post - fails with invalid input types",
+  test("Post - fails with invalid input types - refer to JSON schema",
     async function () {
       const resp = await request(app)
         .post(`/companies`)
@@ -195,7 +195,7 @@ describe("Company Routes Tests", () => {
     }
   );
 
-  test("Post - fails with missing required inputs",
+  test("Post - fails with missing required inputs (handle & name)",
     async function () {
       const resp = await request(app)
         .post(`/companies`)
@@ -233,7 +233,7 @@ describe("Company Routes Tests", () => {
     }
   );
 
-  test("Patch - fails with invalid input types",
+  test("Patch - fails with invalid input types - refer to JSON schema",
     async function () {
       const resp = await request(app)
         .patch(`/companies/test1`)
@@ -289,7 +289,7 @@ describe("Company Routes Tests", () => {
     }
   );
 
-  test("Delete - fails company handle doesn't exist",
+  test("Delete - fails if company handle doesn't exist",
     async function () {
       const resp = await request(app)
         .delete(`/companies/test3`);

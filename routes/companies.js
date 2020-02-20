@@ -37,6 +37,7 @@ router.get("/:handle", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, postSchema);
+    
     if (!validData.valid) {
       let listOfErrors = validData.errors.map(error => error.stack);
       throw new ExpressError(listOfErrors, 400)
