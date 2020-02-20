@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS companies, jobs;
+DROP TABLE IF EXISTS companies, jobs, users;
 
 CREATE TABLE companies (
     handle text PRIMARY KEY,
@@ -15,4 +15,14 @@ CREATE TABLE jobs (
     equity FLOAT NOT NULL CHECK(equity>= 0 AND equity <=1),
     company_handle text REFERENCES companies ON DELETE CASCADE,
     date_posted TIMESTAMP with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE users (
+    username text PRIMARY KEY ,
+    password text NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text NOT NULL UNIQUE,
+    photo_url text,
+    is_admin boolean NOT NULL DEFAULT FALSE
 );

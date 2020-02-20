@@ -1,7 +1,7 @@
 const db = require('../db');
 const sqlForPartialUpdate = require('../helpers/partialUpdate');
 const ExpressError = require('../helpers/expressError');
-const { buildJobFilter } = require("../helpers/buildFilterQuery")
+const { buildJobFilter } = require("../helpers/buildFilterQuery");
 
 
 class Job {
@@ -36,9 +36,15 @@ class Job {
           title,
           salary,
           equity,
-          company_handle,
-          date_posted
+          date_posted,
+          c.handle,
+          c.name,
+          c.description,
+          c.num_employees,
+          c.logo_url
         FROM jobs
+        JOIN companies c
+        ON company_handle = c.handle
         WHERE id = $1`,
       [id]
     );
@@ -49,7 +55,22 @@ class Job {
       throw new ExpressError('Job not found!', 404);
     }
 
-    return { job };
+    return { 
+      job: {
+        id: job.id,
+        title: job.title,
+        salary: job.salary,
+        equity: job.equity,
+        date_posted: job.date_posted,
+        company: {
+          handle: job.handle,
+          name: job.name,
+          description: job.description,
+          num_employees: job.num_employees,
+          logo_url: job.logo_url
+        }
+      }
+    };
   }
 
 

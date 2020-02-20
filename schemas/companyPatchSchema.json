@@ -6,16 +6,6 @@
   "title": "The Root Schema",
   "additionalProperties": false,
   "properties": {
-    "handle": {
-      "$id": "#/properties/handle",
-      "type": "string",
-      "title": "The Handle Schema",
-      "default": "",
-      "examples": [
-        "LYFT"
-      ],
-      "pattern": "^(.*)$"
-    },
     "name": {
       "$id": "#/properties/name",
       "type": "string",

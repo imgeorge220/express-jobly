@@ -4,14 +4,14 @@ const jsonschema = require("jsonschema");
 const router = new express.Router();
 
 const ExpressError = require("../helpers/expressError");
-const Company = require("../models/company");
+const User = require("../models/user");
 
-const postSchema = require("../schemas/companyPostSchema.json");
-const patchSchema = require("../schemas/companyPatchSchema.json");
+const postSchema = require("../schemas/userPostSchema.json");
+const patchSchema = require("../schemas/userPatchSchema.json");
 
 router.get("/", async (req, res, next) => {
   try {
-    let result = await Company.allByQueries(req.query);
+    let result = await User.all();
     return res.json(result);
   }
   catch (err) {
@@ -19,10 +19,10 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:handle", async (req, res, next) => {
+router.get("/:username", async (req, res, next) => {
   try {
-    let company = await Company.getByHandle(req.params.handle);
-    return res.json(company);
+    let user = await User.getByUsername(req.params.username);
+    return res.json(user);
   }
   catch (err) {
     return next(err);
@@ -35,27 +35,28 @@ router.post("/", async (req, res, next) => {
 
     if (!validData.valid) {
       let listOfErrors = validData.errors.map(error => error.stack);
-      throw new ExpressError(listOfErrors, 400)
+      throw new ExpressError(listOfErrors, 400);
     }
 
-    let company = new Company(req.body);
-    await company.addToDb();
+    let user = new User(req.body);
+    await user.addToDb();
 
-    return res.status(201).json({ company });
+    return res.status(201).json({ user });
   }
   catch (err) {
     return next(err);
   }
 });
 
-router.patch("/:handle", async (req, res, next) => {
+router.patch("/:username", async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, patchSchema);
+
     if (!validData.valid) {
       let listOfErrors = validData.errors.map(error => error.stack);
       throw new ExpressError(listOfErrors, 400)
     }
-    let result = await Company.update(req.params.handle, req.body);
+    let result = await User.update(req.params.username, req.body);
     return res.json(result);
   }
   catch (err) {
@@ -63,14 +64,16 @@ router.patch("/:handle", async (req, res, next) => {
   }
 });
 
-router.delete("/:handle", async (req, res, next) => {
+router.delete("/:username", async (req, res, next) => {
   try {
-    let result = await Company.deleteFromDb(req.params.handle);
+    let result = await User.deleteFromDb(req.params.username);
     return res.json(result);
   }
   catch (err) {
     return next(err);
   }
 })
+
+
 
 module.exports = router;

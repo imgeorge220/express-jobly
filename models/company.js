@@ -97,7 +97,7 @@ class Company {
   }
 
   async addToDb() {
-    const company = (await db.query(
+    await db.query(
       `INSERT INTO companies
           (handle,
           name,
@@ -116,10 +116,7 @@ class Company {
       this.description,
       this.numEmployees,
       this.logoUrl]
-    )).rows[0];
-
-    return { company };
-
+    );
   }
 
   static async deleteFromDb(handle) {
