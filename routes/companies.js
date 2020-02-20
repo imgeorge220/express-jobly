@@ -45,7 +45,7 @@ router.post("/", async (req, res, next) => {
     let company = new Company(req.body);
     let newComp = await company.addToDb();
 
-    return res.json(newComp);
+    return res.status(201).json(newComp);
   }
   catch (err) {
     return next(err);

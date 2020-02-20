@@ -1,7 +1,6 @@
 const db = require('../db');
 const sqlForPartialUpdate = require('../helpers/partialUpdate');
 const ExpressError = require('../helpers/expressError');
-const express = require("express");
 const buildFilter = require("../helpers/buildFilterQuery")
 
 
@@ -114,7 +113,6 @@ class Company {
     return { company };
 
   }
-
 
   static async deleteFromDb(handle) {
     const deleted = await db.query(

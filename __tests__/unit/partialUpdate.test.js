@@ -1,7 +1,7 @@
 const sqlForPartialUpdate = require('../../helpers/partialUpdate');
 
 describe("partialUpdate()", () => {
-  it("should generate a proper partial update query with just 1 field",
+  test("should generate a proper partial update query with just 1 field",
     function () {
       let query = sqlForPartialUpdate(
         "test",
@@ -15,7 +15,7 @@ describe("partialUpdate()", () => {
       });
     });
 
-  it("should generate a proper partial update query with multiple fields",
+  test("should generate a proper partial update query with multiple fields",
     function () {
       let query = sqlForPartialUpdate(
         "test",
