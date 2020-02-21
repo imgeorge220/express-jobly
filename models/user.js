@@ -133,8 +133,12 @@ class User {
       [credentials.username]
     );
 
-    if (await bcrypt.compare(credentials.password, user.password)) {
-      return new User(user);
+    if (!user.rows[0]){
+      throw new ExpressError("Invalid username/password", 401);
+    }
+
+    if (await bcrypt.compare(credentials.password, user.rows[0].password)) {
+      return new User(user.rows[0]);
     }
     throw new ExpressError("Invalid username/password", 401);
   }

@@ -5,12 +5,12 @@ const app = require("../../app")
 const db = require('../../db');
 const User = require('../../models/user');
 
-let u1;
+let standardUser, differentUser, token, token2;
 
 beforeEach(async function () {
   db.query('DELETE FROM users')
 
-  u1 = new User({
+  standardUser = new User({
     username: "testuser",
     password: "testpassword",
     first_name: "testfirst",
@@ -19,7 +19,19 @@ beforeEach(async function () {
     photo_url: "testphoto",
   });
 
-  await u1.addToDb();
+  differentUser = new User({
+    username: "diffuser",
+    password: "diffpassword",
+    first_name: "difffirst",
+    last_name: "difflast",
+    email: "diff@email.net",
+    photo_url: "diffphoto",
+  });
+
+  await standardUser.addToDb();
+  await differentUser.addToDb();
+  token = standardUser.createToken();
+  token2 = differentUser.createToken();
 });
 
 describe("GET /users tests", () => {
@@ -28,7 +40,7 @@ describe("GET /users tests", () => {
       const resp = await request(app).get(`/users`);
 
       expect(resp.statusCode).toEqual(200);
-      expect(resp.body.users.length).toEqual(1);
+      expect(resp.body.users.length).toEqual(2);
     }
   );
 });
@@ -70,12 +82,12 @@ describe("POST /users tests", () => {
         });
 
       expect(resp.statusCode).toEqual(201);
-      expect(resp.body.user.username).toEqual('testuser2');
+      expect(resp.body._token).toEqual(expect.any(String));
 
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(2);
+      expect(respGet.body.users.length).toEqual(3);
     }
   );
 
@@ -99,7 +111,7 @@ describe("POST /users tests", () => {
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 
@@ -118,7 +130,7 @@ describe("POST /users tests", () => {
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 
@@ -143,7 +155,66 @@ describe("POST /users tests", () => {
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
+    }
+  );
+});
+
+describe("POST /users/login tests", () => {
+  test("Post - logs in existing user with correct credentials",
+    async function () {
+      const resp = await request(app)
+        .post(`/users/login`)
+        .send({
+          username: "testuser",
+          password: "testpassword",
+        });
+
+      expect(resp.statusCode).toEqual(200);
+      expect(resp.body._token).toEqual(expect.any(String));
+
+      const respGet = await request(app)
+        .get(`/users`);
+
+      expect(respGet.body.users.length).toEqual(2);
+    }
+  );
+
+  test("Post - logs in existing user with incorrect password",
+    async function () {
+      const resp = await request(app)
+        .post(`/users/login`)
+        .send({
+          username: "testuser",
+          password: "wrongpassword",
+        });
+
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual("Invalid username/password");
+
+      const respGet = await request(app)
+        .get(`/users`);
+
+      expect(respGet.body.users.length).toEqual(2);
+    }
+  );
+
+  test("Post - logs in existing user with incorrect username",
+    async function () {
+      const resp = await request(app)
+        .post(`/users/login`)
+        .send({
+          username: "wronguser",
+          password: "testpassword",
+        });
+
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual("Invalid username/password");
+
+      const respGet = await request(app)
+        .get(`/users`);
+
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 });
@@ -153,7 +224,10 @@ describe("PATCH /users/:username tests", () => {
     async function () {
       const resp = await request(app)
         .patch(`/users/testuser`)
-        .send({ first_name: "new-first-name" });
+        .send({
+          first_name: "new-first-name",
+          _token: token
+        });
 
       expect(resp.statusCode).toEqual(200);
       expect(resp.body).toEqual({ user: expect.any(Object) });
@@ -176,6 +250,7 @@ describe("PATCH /users/:username tests", () => {
           last_name: 0,
           email: "invalid email",
           photo_url: 0,
+          _token: token,
         });
 
       expect(resp.statusCode).toEqual(400);
@@ -185,7 +260,7 @@ describe("PATCH /users/:username tests", () => {
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 
@@ -200,6 +275,7 @@ describe("PATCH /users/:username tests", () => {
           email: "test2@email.net",
           photo_url: "testphoto2",
           extra: "not-allowed",
+          _token: token,
         });
 
       expect(resp.statusCode).toEqual(400);
@@ -209,7 +285,7 @@ describe("PATCH /users/:username tests", () => {
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 
@@ -223,23 +299,71 @@ describe("PATCH /users/:username tests", () => {
           last_name: "testlast2",
           email: "test2@email.net",
           photo_url: "testphoto2",
+          _token: token,
         });
 
-      expect(resp.statusCode).toEqual(404);
-      expect(resp.body.message).toEqual('User does not exist');
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual('Unauthorized');
 
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
+    }
+  );
+
+  test("Patch - fails if not logged in",
+    async function () {
+      const resp = await request(app)
+        .patch(`/users/testuser`)
+        .send({
+          password: "testpassword2",
+          first_name: "testfirst2",
+          last_name: "testlast2",
+          email: "test2@email.net",
+          photo_url: "testphoto2",
+        });
+
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual('Unauthorized');
+
+      const respGet = await request(app)
+        .get(`/users`);
+
+      expect(respGet.body.users.length).toEqual(2);
+    }
+  );
+
+  test("Patch - fails if not logged in as correct user",
+    async function () {
+      const resp = await request(app)
+        .patch(`/users/testuser`)
+        .send({
+          password: "testpassword2",
+          first_name: "testfirst2",
+          last_name: "testlast2",
+          email: "test2@email.net",
+          photo_url: "testphoto2",
+          _token: token2,
+        });
+
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual('Unauthorized');
+
+      const respGet = await request(app)
+        .get(`/users`);
+
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 });
+
 describe("DELETE /users/:username tests", () => {
   test("Delete - removes user",
     async function () {
       const resp = await request(app)
-        .delete(`/users/testuser`);
+        .delete(`/users/testuser`)
+        .send({ _token: token, });
 
       expect(resp.statusCode).toEqual(200);
       expect(resp.body.message).toEqual("User successfully deleted");
@@ -247,22 +371,38 @@ describe("DELETE /users/:username tests", () => {
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(0);
+      expect(respGet.body.users.length).toEqual(1);
     }
   );
 
-  test("Delete - fails if username doesn't exist",
+  test("Delete - fails if not logged in",
     async function () {
       const resp = await request(app)
-        .delete(`/users/invalid`);
+        .delete(`/users/testuser`);
 
-      expect(resp.statusCode).toEqual(404);
-      expect(resp.body.message).toEqual('User does not exist');
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual('Unauthorized');
 
       const respGet = await request(app)
         .get(`/users`);
 
-      expect(respGet.body.users.length).toEqual(1);
+      expect(respGet.body.users.length).toEqual(2);
+    }
+  );
+
+  test("Delete - fails if not logged in as correct user",
+    async function () {
+      const resp = await request(app)
+        .delete(`/users/testuser`)
+        .send({ _token: token2 });
+
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual('Unauthorized');
+
+      const respGet = await request(app)
+        .get(`/users`);
+
+      expect(respGet.body.users.length).toEqual(2);
     }
   );
 });

@@ -23,7 +23,7 @@ function ensureLoggedIn(req, res, next) {
 }
 
 function ensureCorrectUser(req, res, next) {
-  if (req.user.username === req.params.username) {
+  if (req.user && req.user.username === req.params.username) {
     return next();
   } else {
     return next({ status: 401, message: "Unauthorized" });
@@ -31,7 +31,7 @@ function ensureCorrectUser(req, res, next) {
 }
 
 function checkIfAdmin(req, res, next) {
-  if (req.user.is_admin) {
+  if (req.user && req.user.is_admin) {
     return next();
   } else {
     return next({status:401, message: "Unauthorized"});
