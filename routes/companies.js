@@ -5,11 +5,12 @@ const router = new express.Router();
 
 const ExpressError = require("../helpers/expressError");
 const Company = require("../models/company");
+const { ensureLoggedIn, checkIfAdmin } = require("../helpers/authMiddleware");
 
 const postSchema = require("../schemas/companyPostSchema.json");
 const patchSchema = require("../schemas/companyPatchSchema.json");
 
-router.get("/", async (req, res, next) => {
+router.get("/", ensureLoggedIn, async (req, res, next) => {
   try {
     let result = await Company.allByQueries(req.query);
     return res.json(result);
@@ -19,7 +20,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:handle", async (req, res, next) => {
+router.get("/:handle", ensureLoggedIn, async (req, res, next) => {
   try {
     let company = await Company.getByHandle(req.params.handle);
     return res.json(company);
@@ -29,7 +30,7 @@ router.get("/:handle", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", checkIfAdmin, async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, postSchema);
 
@@ -48,7 +49,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.patch("/:handle", async (req, res, next) => {
+router.patch("/:handle", checkIfAdmin, async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, patchSchema);
     if (!validData.valid) {
@@ -63,7 +64,7 @@ router.patch("/:handle", async (req, res, next) => {
   }
 });
 
-router.delete("/:handle", async (req, res, next) => {
+router.delete("/:handle", checkIfAdmin, async (req, res, next) => {
   try {
     let result = await Company.deleteFromDb(req.params.handle);
     return res.json(result);

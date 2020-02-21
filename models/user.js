@@ -1,19 +1,21 @@
 const bcrypt = require('bcrypt');
+const jwt = require("jsonwebtoken");
 
 const db = require('../db');
 const sqlForPartialUpdate = require('../helpers/partialUpdate');
 const ExpressError = require('../helpers/expressError');
-const { BCRYPT_WORK_FACTOR } = require('../config');
+const { BCRYPT_WORK_FACTOR, SECRET_KEY } = require('../config');
 
 
 class User {
-  constructor({ username, password, first_name, last_name, email, photo_url }) {
+  constructor({ username, password, first_name, last_name, email, photo_url, is_admin }) {
     this.username = username;
     this.password = password;
     this.first_name = first_name;
     this.last_name = last_name;
     this.email = email;
     this.photo_url = photo_url;
+    this.is_admin = is_admin || false;
   }
 
   static async all() {
@@ -39,7 +41,7 @@ class User {
         first_name,
         last_name,
         email,
-        photo_url 
+        photo_url
         FROM users
         WHERE username = $1`,
       [username]
@@ -79,7 +81,7 @@ class User {
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
-        photo_url: user.photo_url
+        photo_url: user.photo_url,
       }
     };
   }
@@ -111,6 +113,30 @@ class User {
     );
 
     delete this.password;
+  }
+
+  createToken() {
+    let payload = { username: this.username, is_admin: this.is_admin };
+    let token = jwt.sign(payload, SECRET_KEY);
+
+    return token;
+  }
+
+  static async login(credentials) {
+    const user = await db.query(
+      `SELECT
+        username,
+        password,
+        is_admin
+        FROM users
+        WHERE username = $1`,
+      [credentials.username]
+    );
+
+    if (await bcrypt.compare(credentials.password, user.password)) {
+      return new User(user);
+    }
+    throw new ExpressError("Invalid username/password", 401);
   }
 
   static async deleteFromDb(username) {

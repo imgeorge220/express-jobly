@@ -5,11 +5,12 @@ const router = new express.Router();
 
 const ExpressError = require("../helpers/expressError");
 const Job = require("../models/job");
+const { ensureLoggedIn, checkIfAdmin } = require("../helpers/authMiddleware");
 
 const postSchema = require("../schemas/jobPostSchema.json");
 const patchSchema = require("../schemas/jobPatchSchema.json");
 
-router.get("/", async (req, res, next) => {
+router.get("/", ensureLoggedIn, async (req, res, next) => {
   try {
     let result = await Job.allByQueries(req.query);
     return res.json(result);
@@ -19,7 +20,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", ensureLoggedIn, async (req, res, next) => {
   try {
     let job = await Job.getByID(req.params.id);
     return res.json(job);
@@ -29,7 +30,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", checkIfAdmin, async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, postSchema);
 
@@ -48,7 +49,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.patch("/:id", async (req, res, next) => {
+router.patch("/:id", checkIfAdmin, async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, patchSchema);
 
@@ -64,7 +65,7 @@ router.patch("/:id", async (req, res, next) => {
   }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", checkIfAdmin, async (req, res, next) => {
   try {
     let result = await Job.deleteFromDb(req.params.id);
     return res.json(result);

@@ -5,6 +5,8 @@ const router = new express.Router();
 
 const ExpressError = require("../helpers/expressError");
 const User = require("../models/user");
+const { ensureCorrectUser } = require("../helpers/authMiddleware");
+const {SECRET_KEY} = require("../config");
 
 const postSchema = require("../schemas/userPostSchema.json");
 const patchSchema = require("../schemas/userPatchSchema.json");
@@ -37,18 +39,31 @@ router.post("/", async (req, res, next) => {
       let listOfErrors = validData.errors.map(error => error.stack);
       throw new ExpressError(listOfErrors, 400);
     }
-
     let user = new User(req.body);
     await user.addToDb();
 
-    return res.status(201).json({ user });
+    let token = user.createToken();
+
+    return res.status(201).json({ _token: token });
   }
   catch (err) {
     return next(err);
   }
 });
 
-router.patch("/:username", async (req, res, next) => {
+router.post("/login", async (req, res, next) => {
+  try {
+    let user = await User.login(req.body);
+    let token = user.createToken();
+
+    return res.json({ _token: token });
+  }
+  catch(err) {
+    return next(err);
+  }
+})
+
+router.patch("/:username", ensureCorrectUser, async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, patchSchema);
 
@@ -64,7 +79,7 @@ router.patch("/:username", async (req, res, next) => {
   }
 });
 
-router.delete("/:username", async (req, res, next) => {
+router.delete("/:username", ensureCorrectUser, async (req, res, next) => {
   try {
     let result = await User.deleteFromDb(req.params.username);
     return res.json(result);
