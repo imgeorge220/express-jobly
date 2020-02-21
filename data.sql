@@ -1,4 +1,5 @@
-DROP TABLE IF EXISTS companies, jobs, users;
+DROP TABLE IF EXISTS companies, jobs, users, applications;
+DROP TYPE IF EXISTS state_options;
 
 CREATE TABLE companies (
     handle text PRIMARY KEY,
@@ -25,4 +26,13 @@ CREATE TABLE users (
     email text NOT NULL UNIQUE,
     photo_url text,
     is_admin boolean NOT NULL DEFAULT FALSE
+);
+CREATE TYPE state_options AS ENUM('interested', 'applied', 'accepted', 'rejected');
+
+CREATE TABLE applications (
+    username text references users ON DELETE CASCADE,
+    job_id INTEGER references jobs ON DELETE CASCADE,
+    state state_options NOT NULL,
+    created_at TIMESTAMP with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, job_id)
 );
