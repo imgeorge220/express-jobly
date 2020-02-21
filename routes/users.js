@@ -6,7 +6,6 @@ const router = new express.Router();
 const ExpressError = require("../helpers/expressError");
 const User = require("../models/user");
 const { ensureCorrectUser } = require("../helpers/authMiddleware");
-const {SECRET_KEY} = require("../config");
 
 const postSchema = require("../schemas/userPostSchema.json");
 const patchSchema = require("../schemas/userPatchSchema.json");
