@@ -49,6 +49,19 @@ router.post("/", checkIfAdmin, async (req, res, next) => {
   }
 });
 
+router.post("/:id/apply", ensureLoggedIn, async (req, res, next) => {
+  try {
+    await Job.getByID(req.params.id);
+    let state = await Job.apply(req.user.username, req.params.id, req.body.state);
+
+    return res.json({ message: state });
+  }
+  catch(err) {
+    return next(err);
+  }
+
+})
+
 router.patch("/:id", checkIfAdmin, async (req, res, next) => {
   try {
     const validData = jsonschema.validate(req.body, patchSchema);

@@ -37,22 +37,44 @@ class User {
   static async getByUsername(username) {
     const results = await db.query(
       `SELECT
-        username,
+        u.username,
         first_name,
         last_name,
         email,
-        photo_url
-        FROM users
-        WHERE username = $1`,
+        photo_url,
+        a.state,
+        a.created_at,
+        j.title,
+        j.company_handle
+        FROM users u
+        LEFT JOIN applications a ON u.username = a.username
+        LEFT JOIN jobs j ON j.id = a.job_id
+        WHERE u.username = $1`,
       [username]
     );
 
-    const user = results.rows[0];
-
-    if (!user) {
+    const userInfo = results.rows[0];
+      console.log(results)
+    if (!userInfo) {
       throw new ExpressError('User not found!', 404);
     }
 
+    const jobs = results.rows[0].title ? results.rows.map(r => ({
+      title: r.title,
+      company_handle: r.company_handle,
+      state: r.state,
+      created_at: r.created_at
+    })) : [];
+
+    const user = {
+      username: userInfo.username,
+      first_name: userInfo.first_name,
+      last_name: userInfo.last_name,
+      email: userInfo.email,
+      photo_url: userInfo.photo_url,
+      jobs: jobs
+    }
+    console.log({ user })
     return { user }
   }
 
@@ -73,7 +95,7 @@ class User {
       throw new ExpressError('User does not exist', 404);
     }
 
-    let { password, is_admin, ...user} = update.rows[0];
+    let { password, is_admin, ...user } = update.rows[0];
 
     return { user };
   }
@@ -125,7 +147,7 @@ class User {
       [credentials.username]
     );
 
-    if (!user.rows[0]){
+    if (!user.rows[0]) {
       throw new ExpressError("Invalid username/password", 401);
     }
 

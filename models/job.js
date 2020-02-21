@@ -55,7 +55,7 @@ class Job {
       throw new ExpressError('Job not found!', 404);
     }
 
-    return { 
+    return {
       job: {
         id: job.id,
         title: job.title,
@@ -128,6 +128,16 @@ class Job {
     }
 
     return { message: "Job successfully deleted" };
+  }
+
+  static async apply(username, id, state) {
+    const update = (await db.query(
+      `INSERT INTO applications (username, job_id, state)
+      VALUES ($1, $2, $3)
+      RETURNING state`, [username, id, state]
+    )).rows[0].state;
+
+    return update;
   }
 
 }
