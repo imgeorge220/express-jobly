@@ -54,7 +54,6 @@ class User {
     );
 
     const userInfo = results.rows[0];
-      console.log(results)
     if (!userInfo) {
       throw new ExpressError('User not found!', 404);
     }
@@ -74,7 +73,6 @@ class User {
       photo_url: userInfo.photo_url,
       jobs: jobs
     }
-    console.log({ user })
     return { user }
   }
 

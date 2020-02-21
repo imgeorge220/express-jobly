@@ -336,6 +336,79 @@ describe("POST /jobs tests", () => {
   );
 });
 
+describe("POST /jobs/:id/apply tests", () => {
+  test("Post - creates new job application",
+    async function () {
+      const resp = await request(app)
+        .post(`/jobs/${j1.id}/apply`)
+        .send({
+          state: "applied",
+          _token: tokenStandard,
+        });
+
+      expect(resp.statusCode).toEqual(201);
+      expect(resp.body.message).toEqual("applied");
+
+      const respGet = await request(app)
+        .get(`/users/standardUser`);
+
+      console.log(respGet.body.user);
+      expect(respGet.body.user.jobs[0].title).toEqual('TestTitle1');
+    }
+  );
+
+  test("Post - fails if no user",
+    async function () {
+      const resp = await request(app)
+        .post(`/jobs/${j1.id}/apply`)
+        .send({ state: "applied" });
+
+      expect(resp.statusCode).toEqual(401);
+      expect(resp.body.message).toEqual("Unauthorized");
+    }
+  );
+
+  test("Post - fails if invalid inputs",
+    async function () {
+      const resp = await request(app)
+        .post(`/jobs/${j1.id}/apply`)
+        .send({
+          state: "invalid state",
+          _token: tokenStandard,
+        });
+
+      expect(resp.statusCode).toEqual(400);
+      expect(resp.body.message.length).toEqual(1);
+    }
+  );
+
+  test("Post - fails if missing required inputs",
+    async function () {
+      const resp = await request(app)
+        .post(`/jobs/${j1.id}/apply`)
+        .send({ _token: tokenStandard });
+
+      expect(resp.statusCode).toEqual(400);
+      expect(resp.body.message.length).toEqual(1);
+    }
+  );
+
+  test("Post - fails if extraneous inputs",
+    async function () {
+      const resp = await request(app)
+        .post(`/jobs/${j1.id}/apply`)
+        .send({
+          state: "applied",
+          _token: tokenStandard,
+          invalid: "post should fail",
+        });
+
+      expect(resp.statusCode).toEqual(400);
+      expect(resp.body.message.length).toEqual(1);
+    }
+  );
+});
+
 describe("PATCH /jobs/:id tests", () => {
   test("Patch - updates existing job",
     async function () {
