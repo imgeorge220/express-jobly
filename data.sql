@@ -1,4 +1,11 @@
-DROP TABLE IF EXISTS companies, jobs, users, applications;
+DROP TABLE IF EXISTS 
+  companies, 
+  jobs, 
+  users, 
+  applications, 
+  technologies, 
+  jobs_technologies, 
+  users_technologies;
 DROP TYPE IF EXISTS state_options;
 
 CREATE TABLE companies (
@@ -35,4 +42,20 @@ CREATE TABLE applications (
     state state_options NOT NULL,
     created_at TIMESTAMP with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (username, job_id)
+);
+
+CREATE TABLE technologies (
+    name SERIAL PRIMARY KEY
+);
+
+CREATE TABLE jobs_technologies (
+    technology_id integer references technologies ON DELETE CASCADE,
+    job_id INTEGER references jobs ON DELETE CASCADE,
+    PRIMARY KEY (technology_id, job_id)
+);
+
+CREATE TABLE users_technologies (
+    technology_id integer references technologies ON DELETE CASCADE,
+    username text references users ON DELETE CASCADE,
+    PRIMARY KEY (technology_id, username)
 );
